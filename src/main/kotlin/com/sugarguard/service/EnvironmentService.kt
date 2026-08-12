@@ -6,6 +6,7 @@ import com.sugarguard.util.WeatherUtil
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Duration // 타임아웃 설정을 위해 추가
 
 @Service
 class EnvironmentService(
@@ -29,6 +30,7 @@ class EnvironmentService(
                 }
                 .retrieve()
                 .bodyToMono(KmaWeatherResponse::class.java)
+                .timeout(Duration.ofSeconds(8)) // 8초 타임아웃 실제 적용
                 .block()
 
             val items = weatherResponse?.response?.body?.items?.item ?: emptyList()
@@ -42,7 +44,7 @@ class EnvironmentService(
 
         } catch (e: Exception) {
             // 타임아웃 발생 시 콘솔창에 원인을 명확히 남깁니다.
-            println("기상청 API 3초 타임아웃 또는 연결 에러: ${e.message}")
+            println("기상청 API 8초 타임아웃 또는 연결 에러: ${e.message}")
             // 에러 발생 시 개발자님이 설정해 둔 기본 대체 데이터 반환
             Pair(25.0, false)
         }
@@ -66,6 +68,7 @@ class EnvironmentService(
                 }
                 .retrieve()
                 .bodyToMono(AirKoreaResponse::class.java)
+                .timeout(Duration.ofSeconds(8)) // 8초 타임아웃 실제 적용
                 .block()
 
             val items = response?.response?.body?.items ?: emptyList()
@@ -81,7 +84,7 @@ class EnvironmentService(
             }
         } catch (e: Exception) {
             // 타임아웃 발생 시 로그를 남기고 기본값 반환
-            println("API 3초 타임아웃 또는 연결 에러: ${e.message}")
+            println("미세먼지 API 8초 타임아웃 또는 연결 에러: ${e.message}")
             "MODERATE"
         }
     }

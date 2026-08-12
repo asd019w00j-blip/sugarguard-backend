@@ -31,10 +31,14 @@ class RecordService(
         )
         recordRepository.save(record)
 
+        val homeData = getHomeStatus().data
+
         return RecordResponse(
             success = true,
             message = "활동 기록이 성공적으로 저장되었습니다.",
-            earnedBadge = "첫 도전 배지 획득!"
+            earnedBadge = "첫 도전 배지 획득!",
+            continuousDays = homeData.continuousDays,
+            totalDistanceKm = homeData.totalDistanceKm
         )
     }
 

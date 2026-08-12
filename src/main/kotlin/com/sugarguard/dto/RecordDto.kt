@@ -11,5 +11,7 @@ data class RecordRequest(
 data class RecordResponse(
     val success: Boolean,
     val message: String,
-    val earnedBadge: String? = null // 획득한 배지가 없으면 null 반환
+    val earnedBadge: String? = null, // 획득한 배지가 없으면 null 반환
+    val continuousDays: Int = 0,
+    val totalDistanceKm: Double = 0.0
 )

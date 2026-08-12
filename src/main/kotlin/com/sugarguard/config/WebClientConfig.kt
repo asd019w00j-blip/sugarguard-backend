@@ -14,7 +14,7 @@ class WebClientConfig {
     fun webClient(): WebClient {
         // 3초 타임아웃 설정
         val httpClient = HttpClient.create()
-            .responseTimeout(Duration.ofSeconds(3))
+            .responseTimeout(Duration.ofSeconds(10)) // 10초로 변경
 
         return WebClient.builder()
             .clientConnector(ReactorClientHttpConnector(httpClient))
