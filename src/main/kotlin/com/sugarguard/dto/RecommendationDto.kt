@@ -1,9 +1,16 @@
 package com.sugarguard.dto
 
+// 요청 DTO
+data class RecommendationRequest(
+    val latitude: Double,
+    val longitude: Double
+)
+
+// 응답 DTO
 data class RecommendationResponse(
-    val success: Boolean = true,
+    val success: Boolean,
     val environment: EnvironmentDto,
-    val recommendation: RecommendationDto
+    val recommendation: RecommendationDataDto
 )
 
 data class EnvironmentDto(
@@ -23,9 +30,9 @@ data class ParkDto(
     val distanceMeters: Int
 )
 
-data class RecommendationDto(
+data class RecommendationDataDto(
     val activityId: String,
-    val activityType: String,
+    val activityType: String, // OUTDOOR_WALK, INDOOR_STAIRS, INDOOR_SQUAT[cite: 2]
     val activityName: String,
     val durationMinutes: Int = 15,
     val reason: String,

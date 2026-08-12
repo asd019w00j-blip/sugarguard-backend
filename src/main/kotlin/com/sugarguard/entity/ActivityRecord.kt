@@ -2,6 +2,7 @@ package com.sugarguard.entity
 
 import jakarta.persistence.*
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Entity
 class ActivityRecord(
@@ -14,5 +15,5 @@ class ActivityRecord(
     val durationMinutes: Int = 0,
     val distanceKm: Double = 0.0,
 
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(ZoneId.of("Asia/Seoul"))
 )

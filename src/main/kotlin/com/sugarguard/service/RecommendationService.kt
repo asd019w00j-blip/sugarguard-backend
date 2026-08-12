@@ -2,76 +2,79 @@ package com.sugarguard.service
 
 import com.sugarguard.dto.*
 import org.springframework.stereotype.Service
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.UUID
 
 @Service
 class RecommendationService(
-    private val placeSearchService: PlaceSearchService,
-    private val environmentService: EnvironmentService
+    private val environmentService: EnvironmentService,
+    private val placeSearchService: PlaceSearchService
 ) {
-    fun createRecommendation(request: RecommendationRequest): RecommendationResponse {
+    fun getRecommendation(request: RecommendationRequest): RecommendationResponse {
+        val seoulZoneId = ZoneId.of("Asia/Seoul")
+        val now = LocalDateTime.now(seoulZoneId).toString()
 
-        // 1. 재료 준비: 날씨, 공원, 미세먼지 데이터를 모두 가져옵니다.
+        // 1. 공공 데이터 API 호출
         val (temperature, isRaining) = environmentService.getWeatherData(request.latitude, request.longitude)
-        val pmGrade = environmentService.getFineDustGrade() // 미세먼지 추가!
-        val nearbyParks = placeSearchService.findNearbyParks(request.latitude, request.longitude)
+        val pmGrade = environmentService.getFineDustGrade()
+        val weatherCondition = if (isRaining) "RAIN" else "CLEAR"
 
-        // 2. 환경 정보 조립
-        val environmentDto = EnvironmentDto(
-            retrievedAt = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-            dataSource = "LIVE",
-            weatherCondition = if (isRaining) "RAIN" else "CLEAR",
-            temperature = temperature,
-            feelsLikeTemperature = temperature,
-            pmGrade = pmGrade,
-            nearbyParks = nearbyParks
-        )
+        // 2. 야외 활동 적합 판단 로직 (비가 안 오고 미세먼지가 좋음/보통일 때)
+        val isOutdoorSuitable = !isRaining && (pmGrade == "GOOD" || pmGrade == "MODERATE")
 
-        // 3. AI 판단 로직 (단일 활동 추천 결정)
-        val recommendationDto: RecommendationDto
+        var nearbyParks = emptyList<ParkDto>()
+        var activityType = "INDOOR_SQUAT"
+        var activityName = "스쿼트 15분"
+        var reason = "안전한 실내 활동을 추천해요."
+        var location: LocationDto? = null
+        var guideText: String? = "제자리에서 스쿼트를 15분간 진행해 보세요."
 
-        // 미세먼지가 나쁘거나 매우 나쁜지 확인
-        val isBadAir = pmGrade == "BAD" || pmGrade == "VERY_BAD"
+        // 3. 분기 처리: 공원 존재 여부 확인
+        if (isOutdoorSuitable) {
+            nearbyParks = placeSearchService.findNearbyParks(request.latitude, request.longitude)
 
-        // 야외 조건 미충족 (비가 오거나, 미세먼지가 나쁘거나, 공원이 없음)
-        if (isRaining || isBadAir || nearbyParks.isEmpty()) {
-            recommendationDto = RecommendationDto(
-                activityId = "rec_indoor_${System.currentTimeMillis()}",
-                activityType = if (isBadAir) "INDOOR_STAIRS" else "INDOOR_SQUAT",
-                activityName = if (isBadAir) "계단 오르내리기" else "스쿼트 15분",
-                durationMinutes = 15,
-                reason = when {
-                    isRaining -> "현재 비가 와서 실내 활동을 추천해요."
-                    isBadAir -> "현재 미세먼지가 나쁨 수준이라 실내 활동을 추천해요."
-                    else -> "주변에 적당한 공원이 없어 실내 활동을 추천해요."
-                },
-                location = null,
-                guideText = "안전한 실내에서 15분간 활동해 보세요."
-            )
-        }
-        // 야외 조건 충족
-        else {
-            val targetPark = nearbyParks.first()
-            recommendationDto = RecommendationDto(
-                activityId = "rec_outdoor_${System.currentTimeMillis()}",
-                activityType = "OUTDOOR_WALK",
-                activityName = "${targetPark.name} 15분 산책",
-                durationMinutes = 15,
-                reason = "날씨가 맑고 미세먼지도 좋아 야외 산책에 적합해요.",
-                location = LocationDto(
-                    name = targetPark.name,
-                    latitude = targetPark.latitude,
-                    longitude = targetPark.longitude
-                ),
+            if (nearbyParks.isNotEmpty()) {
+                val park = nearbyParks.first() // 가장 가까운 공원 선택
+                activityType = "OUTDOOR_WALK"
+                activityName = "${park.name} 15분 산책"
+                reason = "현재 날씨가 맑고 미세먼지가 좋아서 야외 산책에 적합해요."
+                location = LocationDto(park.name, park.latitude, park.longitude)
                 guideText = null
-            )
+            } else {
+                activityType = "INDOOR_STAIRS"
+                activityName = "계단 오르내리기"
+                reason = "날씨는 좋지만 주변에 공원이 없어 실내 활동을 추천해요."
+                guideText = "가까운 계단에서 15분간 오르내려 보세요."
+            }
+        } else {
+            activityType = "INDOOR_STAIRS"
+            activityName = "계단 오르내리기"
+            reason = if (isRaining) "현재 비가 오고 있어서 실내 활동을 추천해요." else "현재 미세먼지가 나빠서 실내 활동을 추천해요."
+            guideText = "가까운 계단에서 15분간 오르내려 보세요."
         }
 
+        // 4. API 명세서 규격에 맞춘 최종 응답 조립[cite: 2]
         return RecommendationResponse(
             success = true,
-            environment = environmentDto,
-            recommendation = recommendationDto
+            environment = EnvironmentDto(
+                retrievedAt = now,
+                dataSource = "LIVE",
+                weatherCondition = weatherCondition,
+                temperature = temperature,
+                feelsLikeTemperature = temperature + 0.5,
+                pmGrade = pmGrade,
+                nearbyParks = nearbyParks
+            ),
+            recommendation = RecommendationDataDto(
+                activityId = "rec_${UUID.randomUUID().toString().substring(0, 8)}",
+                activityType = activityType,
+                activityName = activityName,
+                durationMinutes = 15,
+                reason = reason,
+                location = location,
+                guideText = guideText
+            )
         )
     }
 }

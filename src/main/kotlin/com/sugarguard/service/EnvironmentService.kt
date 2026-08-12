@@ -14,14 +14,12 @@ class EnvironmentService(
     @Value("\${public-data.service-key}")
     private lateinit var publicDataServiceKey: String
 
-    // 반환 타입을 Pair<Double, Boolean> (기온, 비오는지여부)로 지정합니다.
     fun getWeatherData(latitude: Double, longitude: Double): Pair<Double, Boolean> {
         return try {
             val (nx, ny) = WeatherUtil.convertGrid(latitude, longitude)
             val (baseDate, baseTime) = WeatherUtil.getBaseDateTime()
 
             val weatherResponse = webClient.get()
-                // ... (이전과 동일한 uriBuilder 부분) ...
                 .uri { uriBuilder ->
                     uriBuilder.scheme("http").host("apis.data.go.kr").path("/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst")
                         .queryParam("serviceKey", publicDataServiceKey)
@@ -38,13 +36,14 @@ class EnvironmentService(
             val precipitationType = items.find { it.category == "PTY" }?.obsrValue ?: "0"
 
             val temperature = temperatureStr.toDoubleOrNull() ?: 25.0
-            val isRaining = precipitationType != "0" // 0이 아니면 비나 눈이 오는 상태
+            val isRaining = precipitationType != "0"
 
             Pair(temperature, isRaining)
 
         } catch (e: Exception) {
-            println("기상청 API 호출 에러: ${e.message}")
-            // 에러 발생 시 기본값 반환 (온도 25도, 맑음)
+            // 타임아웃 발생 시 콘솔창에 원인을 명확히 남깁니다.
+            println("기상청 API 3초 타임아웃 또는 연결 에러: ${e.message}")
+            // 에러 발생 시 개발자님이 설정해 둔 기본 대체 데이터 반환
             Pair(25.0, false)
         }
     }
@@ -61,7 +60,7 @@ class EnvironmentService(
                         .queryParam("returnType", "json")
                         .queryParam("numOfRows", "100")
                         .queryParam("pageNo", "1")
-                        .queryParam("sidoName", "충남") // 충남 지역의 모든 측정소 데이터 조회
+                        .queryParam("sidoName", "충남")
                         .queryParam("ver", "1.0")
                         .build()
                 }
@@ -70,8 +69,6 @@ class EnvironmentService(
                 .block()
 
             val items = response?.response?.body?.items ?: emptyList()
-
-            // 데이터가 있는 첫 번째 측정소의 미세먼지 등급을 사용 (1:좋음, 2:보통, 3:나쁨, 4:매우나쁨)
             val firstValidItem = items.find { it.pm10Grade != null }
             val gradeValue = firstValidItem?.pm10Grade ?: "1"
 
@@ -83,9 +80,9 @@ class EnvironmentService(
                 else -> "GOOD"
             }
         } catch (e: Exception) {
-            println("미세먼지 API 호출 에러: ${e.message}")
-            "MODERATE" // 에러 시 기본값
+            // 타임아웃 발생 시 로그를 남기고 기본값 반환
+            println("API 3초 타임아웃 또는 연결 에러: ${e.message}")
+            "MODERATE"
         }
     }
-
 }
