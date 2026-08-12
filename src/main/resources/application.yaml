@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: sugarguard
+  datasource:
+    url: jdbc:h2:mem:sugarguard;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop # 서버를 켤 때마다 테이블을 새로 만듦 (MVP 테스트용)
+    show-sql: true          # 실행되는 SQL 쿼리를 콘솔에 보여줌
+
+kakao:
+  rest-api-key: "db05d73883ad05cef943a81746d51b64"
+
+public-data:
+  service-key: "iU/wOwZn4D1trToYwYpQhcgJ4wOf7QG9qV+36OnKCM78C710wyNj1tfSgfqe/aMJFTJNzYDy3mDXyqKeoy3CIQ=="
