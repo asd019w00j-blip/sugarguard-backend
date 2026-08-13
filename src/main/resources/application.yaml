@@ -16,7 +16,10 @@ spring:
     show-sql: true          # 실행되는 SQL 쿼리를 콘솔에 보여줌
 
 kakao:
-  rest-api-key: "db05d73883ad05cef943a81746d51b64"
+  rest-api-key: ${KAKAO_API_KEY}
 
 public-data:
-  service-key: "iU/wOwZn4D1trToYwYpQhcgJ4wOf7QG9qV+36OnKCM78C710wyNj1tfSgfqe/aMJFTJNzYDy3mDXyqKeoy3CIQ=="
+    service-key: ${PUBLIC_API_KEY}
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
