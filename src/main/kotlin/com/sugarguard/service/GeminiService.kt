@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import java.time.Duration
+import kotlin.math.abs
 
 @Service
 class GeminiService(
@@ -59,33 +60,36 @@ class GeminiService(
 
         } catch (e: Exception) {
             println("제미나이 API 6초 타임아웃 또는 에러: ${e.message}")
-
-            // 6초 초과 또는 503 에러 발생 시 앱이 멈추지 않고 아래 문구를 강제 반환
             "날씨가 좋네요! 가볍게 15분 동안 활동하며 리프레시해 볼까요?"
         }
     }
 
+    // 결과 화면 멘트 생성
     fun generateResultMessage(request: LlmRequest): String {
+        // Null 방지 및 절댓값 미리 계산
+        val diff = request.sleepinessDiff ?: 0
+        val absDiff = abs(diff)
+
         val prompt = if (request.contextType == "RESULT_COMPARISON") {
 
+            //  1. 현재 졸림 상태에 대한 정확한 묘사
             val sleepinessMessage = when {
-                request.sleepinessDiff!! > 0 -> {
-                    "활동 전후로 졸림 수치가 ${request.sleepinessDiff}만큼 개선되었어."
-                }
+                diff > 0 -> "활동 전보다 졸림 수치가 ${absDiff}만큼 개선되어서 훨씬 상쾌해졌어."
+                diff == 0 -> "활동 전후로 졸림 수치에 변화가 없었어."
+                else -> "오히려 활동 전보다 졸림 수치가 ${absDiff}만큼 높아져서 피곤해진 상태야."
+            }
 
-                request.sleepinessDiff == 0 -> {
-                    "활동 전후로 졸림 수치에 변화가 없었어."
-                }
-
-                else -> {
-                    "활동 전후로 졸림 수치가 ${kotlin.math.abs(request.sleepinessDiff)}만큼 높아졌어."
-                }
+            //  2. 상황에 맞는 제미나이의 말투 지정
+            val toneMessage = when {
+                diff > 0 -> "이 긍정적인 변화를 칭찬하고 남은 하루도 파이팅하라는"
+                diff == 0 -> "변화는 없지만 활동을 완료한 것 자체를 격려하고 남은 하루도 잘 보내라는"
+                else -> "무리하지 말고 잠시 쉬어가라고 따뜻하게 위로하고 격려하는"
             }
 
             """
             사용자가 방금 '${request.activityType}' 활동을 마치고 왔어.
             $sleepinessMessage
-            이 결과에 맞게 사용자를 칭찬하거나 격려하고, 남은 하루도 파이팅하라는
+            이 결과에 맞게 $toneMessage 
             다정한 코칭 멘트를 딱 1문장(최대 50자 이내)으로 만들어줘.
             """.trimIndent()
 
@@ -118,12 +122,11 @@ class GeminiService(
                 ?.parts
                 ?.firstOrNull()
                 ?.text
-                ?: "활동을 무사히 마치셨군요! 상쾌해진 기분으로 남은 하루도 활기차게 보내세요!"
+                ?: "활동을 무사히 마치셨군요! 남은 하루도 파이팅입니다!"
 
         } catch (e: Exception) {
             println("제미나이 결과 문구 생성 API 에러: ${e.message}")
-
-            "활동을 무사히 마치셨군요! 상쾌해진 기분으로 남은 하루도 활기차게 보내세요!"
+            "활동을 무사히 마치셨군요! 남은 하루도 파이팅입니다!"
         }
     }
 }
