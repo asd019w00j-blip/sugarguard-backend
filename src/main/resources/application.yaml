@@ -22,4 +22,4 @@ public-data:
   service-key: ${PUBLIC_API_KEY}
 
 gemini:
-  api-key: ${GEMINI_API_KEY}
+  api-keys: ${GEMINI_API_KEY_1},${GEMINI_API_KEY_2}
