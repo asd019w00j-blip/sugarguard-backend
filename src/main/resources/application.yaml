@@ -2,7 +2,7 @@ spring:
   application:
     name: sugarguard
   datasource:
-    url: jdbc:h2:mem:sugarguard;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/sugarguard;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -12,14 +12,14 @@ spring:
       path: /h2-console
   jpa:
     hibernate:
-      ddl-auto: create-drop # 서버를 켤 때마다 테이블을 새로 만듦 (MVP 테스트용)
-    show-sql: true          # 실행되는 SQL 쿼리를 콘솔에 보여줌
+      ddl-auto: update
+    show-sql: true
 
 kakao:
   rest-api-key: ${KAKAO_API_KEY}
 
 public-data:
-    service-key: ${PUBLIC_API_KEY}
+  service-key: ${PUBLIC_API_KEY}
 
 gemini:
   api-key: ${GEMINI_API_KEY}

@@ -6,7 +6,9 @@ import com.sugarguard.util.WeatherUtil
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
-import java.time.Duration // 타임아웃 설정을 위해 추가
+import java.net.URI
+import java.net.URLEncoder
+import java.time.Duration
 
 @Service
 class EnvironmentService(
@@ -20,17 +22,14 @@ class EnvironmentService(
             val (nx, ny) = WeatherUtil.convertGrid(latitude, longitude)
             val (baseDate, baseTime) = WeatherUtil.getBaseDateTime()
 
+            // WebClient의 자동 인코딩을 막기 위해 URI 객체로 직접 생성
+            val urlString = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=$publicDataServiceKey&pageNo=1&numOfRows=1000&dataType=JSON&base_date=$baseDate&base_time=$baseTime&nx=$nx&ny=$ny"
+
             val weatherResponse = webClient.get()
-                .uri { uriBuilder ->
-                    uriBuilder.scheme("http").host("apis.data.go.kr").path("/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst")
-                        .queryParam("serviceKey", publicDataServiceKey)
-                        .queryParam("pageNo", "1").queryParam("numOfRows", "1000").queryParam("dataType", "JSON")
-                        .queryParam("base_date", baseDate).queryParam("base_time", baseTime)
-                        .queryParam("nx", nx).queryParam("ny", ny).build()
-                }
+                .uri(URI(urlString))
                 .retrieve()
                 .bodyToMono(KmaWeatherResponse::class.java)
-                .timeout(Duration.ofSeconds(8)) // 8초 타임아웃 실제 적용
+                .timeout(Duration.ofSeconds(6))
                 .block()
 
             val items = weatherResponse?.response?.body?.items?.item ?: emptyList()
@@ -43,32 +42,24 @@ class EnvironmentService(
             Pair(temperature, isRaining)
 
         } catch (e: Exception) {
-            // 타임아웃 발생 시 콘솔창에 원인을 명확히 남깁니다.
-            println("기상청 API 8초 타임아웃 또는 연결 에러: ${e.message}")
-            // 에러 발생 시 개발자님이 설정해 둔 기본 대체 데이터 반환
+            println("기상청 API 6초 타임아웃 또는 연결 에러: ${e.message}")
             Pair(25.0, false)
         }
     }
 
     fun getFineDustGrade(): String {
         return try {
+            // 한글 '충남' 파라미터가 깨지지 않도록 수동 인코딩
+            val sidoEncoded = URLEncoder.encode("충남", "UTF-8")
+
+            // WebClient의 자동 인코딩을 막기 위해 URI 객체로 직접 생성
+            val urlString = "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=$publicDataServiceKey&returnType=json&numOfRows=100&pageNo=1&sidoName=$sidoEncoded&ver=1.0"
+
             val response = webClient.get()
-                .uri { uriBuilder ->
-                    uriBuilder
-                        .scheme("http")
-                        .host("apis.data.go.kr")
-                        .path("/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty")
-                        .queryParam("serviceKey", publicDataServiceKey)
-                        .queryParam("returnType", "json")
-                        .queryParam("numOfRows", "100")
-                        .queryParam("pageNo", "1")
-                        .queryParam("sidoName", "충남")
-                        .queryParam("ver", "1.0")
-                        .build()
-                }
+                .uri(URI(urlString))
                 .retrieve()
                 .bodyToMono(AirKoreaResponse::class.java)
-                .timeout(Duration.ofSeconds(8)) // 8초 타임아웃 실제 적용
+                .timeout(Duration.ofSeconds(6))
                 .block()
 
             val items = response?.response?.body?.items ?: emptyList()
@@ -83,8 +74,7 @@ class EnvironmentService(
                 else -> "GOOD"
             }
         } catch (e: Exception) {
-            // 타임아웃 발생 시 로그를 남기고 기본값 반환
-            println("미세먼지 API 8초 타임아웃 또는 연결 에러: ${e.message}")
+            println("미세먼지 API 6초 타임아웃 또는 연결 에러: ${e.message}")
             "MODERATE"
         }
     }
