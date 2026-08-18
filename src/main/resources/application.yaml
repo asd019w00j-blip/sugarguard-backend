@@ -1,15 +1,9 @@
 spring:
-  application:
-    name: sugarguard
   datasource:
-    url: jdbc:h2:file:./data/sugarguard;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
@@ -23,3 +17,6 @@ public-data:
 
 gemini:
   api-keys: ${GEMINI_API_KEY_1},${GEMINI_API_KEY_2}
+
+ai:
+  server-url: ${AI_SERVER_URL}
