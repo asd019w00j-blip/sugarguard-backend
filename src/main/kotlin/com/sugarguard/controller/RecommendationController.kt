@@ -11,19 +11,16 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1")
-@CrossOrigin(origins = ["*"])
+// 💡 @CrossOrigin 어노테이션 삭제됨
 class RecommendationController(
     private val recommendationService: RecommendationService,
-    // 💡 추가됨: 로깅 저장을 위한 Repository 의존성 주입
     private val logRepository: RecommendationLogRepository
 ) {
-    // 1. 기존 활동 추천 판단 API
     @PostMapping("/recommendations")
     fun getRecommendation(@RequestBody request: RecommendationRequest): RecommendationResponse {
         return recommendationService.getRecommendation(request)
     }
 
-    // 2. 수락/거절 로깅 API
     @PostMapping("/recommendations/log")
     fun saveRecommendationLog(@RequestBody request: RecommendationLogRequest): RecommendationLogResponse {
         val log = RecommendationLog(

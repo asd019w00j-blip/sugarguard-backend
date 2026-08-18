@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/llm")
-@CrossOrigin(origins = ["*"])
+// 💡 @CrossOrigin 어노테이션 삭제됨
 class LlmController(
     private val geminiService: GeminiService
 ) {
